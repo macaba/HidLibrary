@@ -57,6 +57,7 @@ namespace HidLibrary
         public HidDeviceCapabilities Capabilities { get { return _deviceCapabilities; } }
         public HidDeviceAttributes Attributes { get { return _deviceAttributes; } }
         public string DevicePath { get { return _devicePath; } }
+        public bool ConnectionCheckOverride = false;
 
         public bool MonitorDeviceEvents
         {
@@ -117,20 +118,20 @@ namespace HidLibrary
 
         public HidDeviceData Read(int timeout)
         {
-            if (IsConnected)
+            if (!ConnectionCheckOverride)
             {
-                if (IsOpen == false) OpenDevice();
-                try
-                {
-                    return ReadData(timeout);
-                }
-                catch
-                {
-                    return new HidDeviceData(HidDeviceData.ReadStatus.ReadError);
-                }
-
+                if(!IsConnected)
+                    return new HidDeviceData(HidDeviceData.ReadStatus.NotConnected);
             }
-            return new HidDeviceData(HidDeviceData.ReadStatus.NotConnected);
+            if (IsOpen == false) OpenDevice();
+            try
+            {
+                return ReadData(timeout);
+            }
+            catch
+            {
+                return new HidDeviceData(HidDeviceData.ReadStatus.ReadError);
+            }
         }
 
         public void Read(ReadCallback callback)
@@ -309,19 +310,21 @@ namespace HidLibrary
 
         public bool Write(byte[] data, int timeout)
         {
-            if (IsConnected)
+            if (!ConnectionCheckOverride)
             {
-                if (IsOpen == false) OpenDevice();
-                try
-                {
-                    return WriteData(data, timeout);
-                }
-                catch
-                {
+                if (!IsConnected)
                     return false;
-                }
             }
-            return false;
+
+            if (IsOpen == false) OpenDevice();
+            try
+            {
+                return WriteData(data, timeout);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public void Write(byte[] data, WriteCallback callback)
